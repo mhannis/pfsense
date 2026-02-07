@@ -1,0 +1,21 @@
+# QAT build profile for Atom C3000 (C3xxx) systems.
+# Copy to build.conf and adjust paths for your FreeBSD builder host.
+
+# Must not be "pfSense" unless you are authorized by Netgate.
+export PRODUCT_NAME="nonSense"
+export PRODUCT_NAME_SUFFIX="-CE"
+
+# Sources used by the builder.
+export FREEBSD_REPO_BASE="https://github.com/pfsense/FreeBSD-src.git"
+export FREEBSD_BRANCH="devel-main"
+export FREEBSD_SRC_DIR="/usr/local/pfsense-build/FreeBSD-src"
+
+# Ports tree settings.
+export POUDRIERE_PORTS_GIT_URL="https://github.com/pfsense/FreeBSD-ports.git"
+export POUDRIERE_PORTS_GIT_BRANCH="devel"
+
+# Include QAT modules and firmware in built images.
+export MODULES_OVERRIDE_APPEND="qat/qat qat/qat_common qat/qat_api qat/qat_hw qatfw/qat_c3xxx"
+
+# Append QAT loader lines from loader.conf.append during image creation.
+export LOADERCONF_APPEND_FILE="${BUILDER_ROOT}/loader.conf.append"

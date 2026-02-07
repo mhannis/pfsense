@@ -36,6 +36,13 @@ lc() {
 	echo "${1}" | tr '[[:upper:]]' '[[:lower:]]'
 }
 
+append_loaderconf() {
+	local _loaderconf="${1}"
+	if [ -n "${LOADERCONF_APPEND_FILE}" -a -f "${LOADERCONF_APPEND_FILE}" ]; then
+		cat "${LOADERCONF_APPEND_FILE}" >> "${_loaderconf}"
+	fi
+}
+
 git_last_commit() {
 	export CURRENT_COMMIT=$(git -C ${BUILDER_ROOT} log -1 --format='%H')
 	export CURRENT_AUTHOR=$(git -C ${BUILDER_ROOT} log -1 --format='%an')
@@ -808,6 +815,7 @@ create_iso_image() {
 	rm -f ${LOADERCONF} ${BOOTCONF} >/dev/null 2>&1
 	echo 'autoboot_delay="3"' > ${LOADERCONF}
 	echo 'kern.cam.boot_delay=10000' >> ${LOADERCONF}
+	append_loaderconf "${LOADERCONF}"
 	cat ${LOADERCONF} > ${FINAL_CHROOT_DIR}/boot/loader.conf
 
 	create_distribution_tarball
@@ -861,6 +869,7 @@ create_memstick_image() {
 	echo 'autoboot_delay="3"' > ${LOADERCONF}
 	echo 'kern.cam.boot_delay=10000' >> ${LOADERCONF}
 	echo 'boot_serial="NO"' >> ${LOADERCONF}
+	append_loaderconf "${LOADERCONF}"
 	cat ${LOADERCONF} > ${FINAL_CHROOT_DIR}/boot/loader.conf
 
 	create_distribution_tarball
@@ -910,6 +919,7 @@ create_memstick_serial_image() {
 	echo 'boot_serial="YES"' >> ${LOADERCONF}
 	echo 'console="comconsole,vidconsole"' >> ${LOADERCONF}
 	echo 'comconsole_speed="115200"' >> ${LOADERCONF}
+	append_loaderconf "${LOADERCONF}"
 
 	cat ${BOOTCONF} >> ${FINAL_CHROOT_DIR}/boot.config
 	cat ${LOADERCONF} >> ${FINAL_CHROOT_DIR}/boot/loader.conf
@@ -960,6 +970,7 @@ create_memstick_adi_image() {
 	echo 'comconsole_port="0x2F8"' >> ${LOADERCONF}
 	echo 'hint.uart.0.flags="0x00"' >> ${LOADERCONF}
 	echo 'hint.uart.1.flags="0x10"' >> ${LOADERCONF}
+	append_loaderconf "${LOADERCONF}"
 
 	cat ${BOOTCONF} >> ${FINAL_CHROOT_DIR}/boot.config
 	cat ${LOADERCONF} >> ${FINAL_CHROOT_DIR}/boot/loader.conf

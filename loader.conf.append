@@ -1,0 +1,6 @@
+# QAT (Atom C3000) modules
+qat_c3xxx_fw_load="YES"
+qat_hw_load="YES"
+qat_common_load="YES"
+qat_api_load="YES"
+qat_load="YES"
