@@ -29,7 +29,9 @@ The practical target is operational: build once, publish artifacts, point instal
 - `NONSENSE_RELEASE_WORKFLOW.md`
 5. Orchestration UI/API spec:
 - `NONSENSE_ORCHESTRATOR_SPEC.md`
-6. Session state and detailed change log (operator workspace):
+6. Orchestrator scaffold:
+- `orchestrator/README.md`
+7. Session state and detailed change log (operator workspace):
 - `<userhome>/pfsensece/RESUME_STATE.md`
 
 ## Quick Start (Builder)
