@@ -24,14 +24,14 @@ The practical target is operational: build once, publish artifacts, point instal
 2. QAT-specific workflow:
 - `QAT_RUNBOOK.md`
 3. Session state and detailed change log (operator workspace):
-- `/home/redhot/pfsensece/RESUME_STATE.md`
+- `<userhome>/pfsensece/RESUME_STATE.md`
 
 ## Quick Start (Builder)
 
 From the FreeBSD builder host:
 
 ```sh
-cd /home/codex/pfsensebuild/pfsense
+cd <builderhome>/pfsensebuild/pfsense
 sudo -n env DO_NOT_SIGN_PKG_REPO=YES ./build_qat.sh --update-pkg-repo
 sudo -n env DO_NOT_SIGN_PKG_REPO=YES ./build_qat.sh memstickserial
 ```

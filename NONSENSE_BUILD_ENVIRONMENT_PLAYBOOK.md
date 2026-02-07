@@ -5,11 +5,11 @@ Build and publish a working nonSense (pfSense CE-derived) image and package repo
 
 ## Canonical Hosts and Paths
 1. Builder host: `codex@192.168.10.230` (FreeBSD)
-2. Control workspace: `/home/redhot/pfsensece` (this machine)
+2. Control workspace: `<userhome>/pfsensece` (this machine)
 3. Builder source roots:
-- `/home/codex/pfsensebuild/pfsense`
-- `/home/codex/pfsensebuild/FreeBSD-ports`
-- `/home/codex/pfsensebuild/FreeBSD-src`
+- `<builderhome>/pfsensebuild/pfsense`
+- `<builderhome>/pfsensebuild/FreeBSD-ports`
+- `<builderhome>/pfsensebuild/FreeBSD-src`
 4. Active poudriere ports tree:
 - `/usr/local/poudriere/ports/nonSense_devel`
 5. Package publish root:
@@ -65,20 +65,20 @@ Applied to `FreeBSD-ports` and active poudriere tree:
 Run on builder host:
 
 ```sh
-cd /home/codex/pfsensebuild/pfsense
+cd <builderhome>/pfsensebuild/pfsense
 sudo -n env DO_NOT_SIGN_PKG_REPO=YES ./build_qat.sh --update-pkg-repo
 sudo -n env DO_NOT_SIGN_PKG_REPO=YES ./build_qat.sh memstickserial
 ```
 
 ## Artifact and Log Locations
 1. Image logs:
-- `/home/codex/pfsensebuild/rebuild_memstick*.log`
+- `<builderhome>/pfsensebuild/rebuild_memstick*.log`
 2. Package repo rebuild logs:
-- `/home/codex/pfsensebuild/update_pkg_repo*.log`
+- `<builderhome>/pfsensebuild/update_pkg_repo*.log`
 3. Poudriere bulk logs:
 - `/usr/local/poudriere/data/logs/bulk/nonSense_master_amd64-nonSense_devel/*`
 4. Final image output:
-- `/home/codex/pfsensebuild/pfsense/tmp/nonSense/installer/`
+- `<builderhome>/pfsensebuild/pfsense/tmp/nonSense/installer/`
 
 ## Update Path Validation (Target Firewall)
 1. Confirm package manager can load available packages
@@ -108,4 +108,4 @@ sudo -n env DO_NOT_SIGN_PKG_REPO=YES ./build_qat.sh memstickserial
 
 ## Canonical Session History
 Full chronological details are tracked in:
-- `/home/redhot/pfsensece/RESUME_STATE.md`
+- `<userhome>/pfsensece/RESUME_STATE.md`
