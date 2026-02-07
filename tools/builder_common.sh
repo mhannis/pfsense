@@ -623,7 +623,9 @@ clone_to_staging_area() {
 		-p ${STAGE_CHROOT_DIR} \
 		-X ${_exclude_files} \
 		> ${STAGE_CHROOT_DIR}${PRODUCT_SHARE_DIR}/base.mtree
+	local _tar_xz_options="${TAR_XZ_OPTIONS:-xz:compression-level=0,xz:threads=0}"
 	tar \
+		--options "${_tar_xz_options}" \
 		-C ${STAGE_CHROOT_DIR} \
 		-cJf ${STAGE_CHROOT_DIR}${PRODUCT_SHARE_DIR}/base.txz \
 		-X ${_exclude_files} \
@@ -772,9 +774,10 @@ customize_stagearea_for_image() {
 
 create_distribution_tarball() {
 	mkdir -p ${INSTALLER_CHROOT_DIR}/usr/freebsd-dist
+	local _tar_xz_options="${TAR_XZ_OPTIONS:-xz:compression-level=0,xz:threads=0}"
 
 	echo -n ">>> Creating distribution tarball... " | tee -a ${LOGFILE}
-	tar -C ${FINAL_CHROOT_DIR} --exclude ./pkgs \
+	tar --options "${_tar_xz_options}" -C ${FINAL_CHROOT_DIR} --exclude ./pkgs \
 		-cJf ${INSTALLER_CHROOT_DIR}/usr/freebsd-dist/base.txz .
 	echo "Done!" | tee -a ${LOGFILE}
 
