@@ -1,16 +1,56 @@
-# pfSense
+# nonSense Build Fork
 
-## Overview
+## Purpose
 
-The pfSense project is a free network firewall distribution, based on the FreeBSD operating system with a custom kernel and including third party free software packages for additional functionality. pfSense software, with the help of the package system, is able to provide the same functionality or more of common commercial firewalls, without any of the artificial limitations. It has successfully replaced every big name commercial firewall you can imagine in numerous installations around the world, including Check Point, Cisco PIX, Cisco ASA, Juniper, Sonicwall, Netgear, Watchguard, Astaro, and more.
+This fork is focused on building and operating a reproducible pfSense CE-derived environment under the `nonSense` product name, with:
 
-pfSense software includes a web interface for the configuration of all included components. There is no need for any UNIX knowledge, no need to use the command line for anything, and no need to ever manually edit any rule sets. Users familiar with commercial firewalls catch on to the web interface quickly, though there can be a learning curve for users not familiar with commercial-grade firewalls.
+1. reproducible image builds
+2. a custom package repository
+3. working in-place updates from that repository
+4. Intel QAT support enabled in the built images
 
-pfSense started in 2004 as a fork of the [m0n0wall](http://m0n0.ch/wall/index.php "m0n0wall project homepage") Project (which ended 2015/02/15), though has diverged significantly since.
+The practical target is operational: build once, publish artifacts, point installed systems to the repo, and deliver reliable updates.
 
-pfSense is Copyright 2004-2025 [Rubicon Communications, LLC (Netgate)](https://pfsense.org/license "License Information") and published under an open source license.
-Read more at [https://pfsense.org/](https://pfsense.org/ "The pfSense homepage") and support the team by buying bundled hardware appliances or commercial support.
+## Current Focus
 
-## Contribute
+1. get a fully working first build and update path end-to-end
+2. keep the environment reproducible for other operators
+3. document every required patch and process decision
 
-For information on how to contribute to the pfSense project, see [CONTRIBUTING](.github/CONTRIBUTING.md).
+## Documentation
+
+1. Environment and process playbook:
+- `NONSENSE_BUILD_ENVIRONMENT_PLAYBOOK.md`
+2. QAT-specific workflow:
+- `QAT_RUNBOOK.md`
+3. Session state and detailed change log (operator workspace):
+- `/home/redhot/pfsensece/RESUME_STATE.md`
+
+## Quick Start (Builder)
+
+From the FreeBSD builder host:
+
+```sh
+cd /home/codex/pfsensebuild/pfsense
+sudo -n env DO_NOT_SIGN_PKG_REPO=YES ./build_qat.sh --update-pkg-repo
+sudo -n env DO_NOT_SIGN_PKG_REPO=YES ./build_qat.sh memstickserial
+```
+
+## Scope Notes
+
+1. This project is not attempting to reproduce private Netgate-only components.
+2. Some ports and runtime behaviors are adjusted for public, reproducible builds.
+3. Build and update reliability takes priority over feature parity with non-public variants.
+
+## Roadmap
+
+1. finalize stable first image + package/update workflow
+2. publish structured release and rollback process
+3. add build orchestration UI (build trigger, status/logs, scheduled nightly runs)
+4. support controlled ports update/promotion workflows
+
+## Upstream Attribution
+
+This repository is derived from the upstream pfSense project. For upstream contribution guidance, see:
+
+- `.github/CONTRIBUTING.md`
