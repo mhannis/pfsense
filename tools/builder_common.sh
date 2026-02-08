@@ -635,7 +635,9 @@ clone_to_staging_area() {
 	if [ -d "${BUILDER_TOOLS}/templates/core_pkg/rc/metadir" ]; then
 		core_pkg_create rc "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
 	fi
-	# config.xml moved from src/ to *-default-config ports; seed it when absent.
+	core_pkg_create base "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
+	# config.xml moved from src/ to *-default-config ports. Ensure it exists
+	# after base package creation, right before default-config package creation.
 	if [ ! -f "${STAGE_CHROOT_DIR}/conf.default/config.xml" ]; then
 		local _ports_root="/usr/local/poudriere/ports/${POUDRIERE_PORTS_NAME}"
 		local _cfg_src=""
@@ -658,9 +660,9 @@ clone_to_staging_area() {
 
 		mkdir -p "${STAGE_CHROOT_DIR}/conf.default"
 		cp -f "${_cfg_src}" "${STAGE_CHROOT_DIR}/conf.default/config.xml"
+		echo ">>> Seeded conf.default/config.xml from ${_cfg_src}" | tee -a ${LOGFILE}
 	fi
-
-	core_pkg_create base "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
+	[ -f "${STAGE_CHROOT_DIR}/conf.default/config.xml" ] || print_error_pfS
 	core_pkg_create default-config "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
 
 	local DEFAULTCONF=${STAGE_CHROOT_DIR}/conf.default/config.xml
