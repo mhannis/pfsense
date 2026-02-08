@@ -1322,6 +1322,19 @@ install_pkg_install_ports() {
 
 	echo ">>> Installing pkg repository in chroot (${STAGE_CHROOT_DIR})..."
 
+	# Some installworld+overlay paths leave stage etc account DB files absent.
+	# Seed them so package pre-install scripts using pw(8) can create users/groups.
+	mkdir -p ${STAGE_CHROOT_DIR}/etc
+	[ -f ${STAGE_CHROOT_DIR}/etc/group ] || \
+		[ ! -f /etc/group ] || cp -f /etc/group ${STAGE_CHROOT_DIR}/etc/group
+	[ -f ${STAGE_CHROOT_DIR}/etc/master.passwd ] || \
+		[ ! -f /etc/master.passwd ] || cp -f /etc/master.passwd ${STAGE_CHROOT_DIR}/etc/master.passwd
+	[ -f ${STAGE_CHROOT_DIR}/etc/login.conf ] || \
+		[ ! -f /etc/login.conf ] || cp -f /etc/login.conf ${STAGE_CHROOT_DIR}/etc/login.conf
+	if [ -f ${STAGE_CHROOT_DIR}/etc/master.passwd ]; then
+		pwd_mkdb -p -d ${STAGE_CHROOT_DIR}/etc ${STAGE_CHROOT_DIR}/etc/master.passwd >/dev/null 2>&1 || true
+	fi
+
 	[ -d ${STAGE_CHROOT_DIR}/var/cache/pkg ] || \
 		mkdir -p ${STAGE_CHROOT_DIR}/var/cache/pkg
 
