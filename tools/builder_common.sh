@@ -75,10 +75,18 @@ core_pkg_create_repo() {
 	# breaking snapshot repositories during rsync
 	ln -sf $(basename ${CORE_PKG_REAL_PATH}) ${CORE_PKG_PATH}/.latest
 	ln -sf .latest/All ${CORE_PKG_ALL_PATH}
-	ln -sf .latest/digests.txz ${CORE_PKG_PATH}/digests.txz
 	ln -sf .latest/meta.conf ${CORE_PKG_PATH}/meta.conf
-	ln -sf .latest/meta.txz ${CORE_PKG_PATH}/meta.txz
-	ln -sf .latest/packagesite.txz ${CORE_PKG_PATH}/packagesite.txz
+	# Link catalog files with both legacy (.txz) and modern (.pkg)
+	# extensions so the repo works regardless of which format pkg
+	# repo emitted (FreeBSD 14 uses .txz, FreeBSD 15+ uses .pkg).
+	for _ext in txz pkg; do
+		for _stem in digests meta packagesite data; do
+			if [ -f "${CORE_PKG_REAL_PATH}/${_stem}.${_ext}" ]; then
+				ln -sf ".latest/${_stem}.${_ext}" \
+					"${CORE_PKG_PATH}/${_stem}.${_ext}"
+			fi
+		done
+	done
 }
 
 # Create core pkg (base, kernel)
@@ -832,6 +840,33 @@ customize_stagearea_for_image() {
 
 	# Remove temporary repo conf
 	rm -rf ${FINAL_CHROOT_DIR}/tmp/pkg
+
+	# Activate runtime repo config from the product-repo port.
+	# The build-time pkg_bootstrap wrote a staging (file://) config to
+	# /usr/local/etc/pkg/repos; replace it with the HTTP config that the
+	# product-repo port already prepared with the correct release/devel URLs.
+	local _port_repo_default=""
+	for _f in ${FINAL_CHROOT_DIR}/usr/local/share/${PRODUCT_NAME}/pkg/repos/*.conf.default; do
+		if [ -f "${_f}" ]; then
+			_port_repo_default="${_f%.default}"
+			break
+		fi
+	done
+	if [ -n "${_port_repo_default}" -a -f "${_port_repo_default}" ]; then
+		cp -f "${_port_repo_default}" \
+			${FINAL_CHROOT_DIR}/usr/local/etc/pkg/repos/${PRODUCT_NAME}.conf
+		echo ">>> Activated runtime repo config: $(basename ${_port_repo_default})"
+	elif [ -n "${USE_PKG_REPO_STAGING}" ]; then
+		# Fallback: product-repo port was not installed, so rewrite the
+		# staging config in-place to use the runtime server URLs.
+		local _active_conf="${FINAL_CHROOT_DIR}/usr/local/etc/pkg/repos/${PRODUCT_NAME}.conf"
+		if [ -f "${_active_conf}" ]; then
+			sed -i '' \
+				-e "s,${PKG_REPO_SERVER_STAGING},${PKG_REPO_SERVER_DEVEL},g" \
+				"${_active_conf}"
+			echo ">>> Rewrote staging repo URLs to runtime: ${PKG_REPO_SERVER_DEVEL}"
+		fi
+	fi
 }
 
 create_distribution_tarball() {

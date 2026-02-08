@@ -39,6 +39,7 @@ net-mgmt/iprange
 net/%%PRODUCT_NAME%%-pkg-arping
 net/%%PRODUCT_NAME%%-pkg-Avahi
 net/%%PRODUCT_NAME%%-pkg-cellular
+net/if_pppoe-kmod
 net/%%PRODUCT_NAME%%-pkg-freeradius3
 net/%%PRODUCT_NAME%%-pkg-frr
 net/%%PRODUCT_NAME%%-pkg-haproxy
@@ -76,6 +77,7 @@ security/snort3
 shells/zsh
 sysutils/%%PRODUCT_NAME%%-default-config
 sysutils/%%PRODUCT_NAME%%-default-config-serial
+sysutils/%%PRODUCT_NAME%%-repo
 security/%%PRODUCT_NAME%%-pkg-acme
 security/%%PRODUCT_NAME%%-pkg-nmap
 security/%%PRODUCT_NAME%%-pkg-openvpn-client-export
