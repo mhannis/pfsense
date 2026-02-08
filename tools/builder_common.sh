@@ -658,6 +658,23 @@ clone_to_staging_area() {
 		-X ${_exclude_files} \
 		.
 
+	# Create initial.txz containing files installed only on first boot.
+	local _initial_files="${BUILDER_TOOLS}/templates/core_pkg/base/initial_files"
+	if [ -f "${_initial_files}" ]; then
+		tar \
+			--options "${_tar_xz_options}" \
+			-C ${STAGE_CHROOT_DIR} \
+			-cJf ${STAGE_CHROOT_DIR}${PRODUCT_SHARE_DIR}/initial.txz \
+			-T ${_initial_files}
+	else
+		# Placeholder so pkg-plist is satisfied.
+		tar \
+			--options "${_tar_xz_options}" \
+			-C ${STAGE_CHROOT_DIR} \
+			-cJf ${STAGE_CHROOT_DIR}${PRODUCT_SHARE_DIR}/initial.txz \
+			--empty
+	fi
+
 	# rc core template is absent on newer trees; only build it when present.
 	if [ -d "${BUILDER_TOOLS}/templates/core_pkg/rc/metadir" ]; then
 		core_pkg_create rc "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
