@@ -631,7 +631,10 @@ clone_to_staging_area() {
 		-X ${_exclude_files} \
 		.
 
-	core_pkg_create rc "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
+	# rc core template is absent on newer trees; only build it when present.
+	if [ -d "${BUILDER_TOOLS}/templates/core_pkg/rc/metadir" ]; then
+		core_pkg_create rc "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
+	fi
 	core_pkg_create base "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
 	core_pkg_create default-config "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
 
