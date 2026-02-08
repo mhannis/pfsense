@@ -146,6 +146,24 @@ get_pkg_name() {
 	echo "${PRODUCT_NAME}-${1}-${CORE_PKG_VERSION}"
 }
 
+get_core_pkg_path() {
+	if [ -z "${1}" ]; then
+		return 1
+	fi
+
+	local _name="$(get_pkg_name ${1})"
+	local _pkg
+	for _ext in pkg txz; do
+		_pkg="${CORE_PKG_ALL_PATH}/${_name}.${_ext}"
+		if [ -f "${_pkg}" ]; then
+			echo "${_pkg}"
+			return 0
+		fi
+	done
+
+	return 1
+}
+
 # This routine builds all related kernels
 build_all_kernels() {
 	# Set KERNEL_BUILD_PATH if it has not been set
@@ -169,7 +187,7 @@ build_all_kernels() {
 		LOGFILE="${BUILDER_LOGS}/kernel.${KERNCONF}.${TARGET}.log"
 		echo ">>> Building $BUILD_KERNEL kernel."  | tee -a ${LOGFILE}
 
-		if [ -n "${NO_BUILDKERNEL}" -a -f "${CORE_PKG_ALL_PATH}/$(get_pkg_name kernel-${KERNEL_NAME}).txz" ]; then
+		if [ -n "${NO_BUILDKERNEL}" ] && get_core_pkg_path "kernel-${KERNEL_NAME}" >/dev/null 2>&1; then
 			echo ">>> NO_BUILDKERNEL set, skipping build" | tee -a ${LOGFILE}
 			continue
 		fi
@@ -205,7 +223,7 @@ install_default_kernel() {
 
 	# Copy kernel package to chroot, otherwise pkg won't find it to install
 	if ! pkg_chroot_add ${FINAL_CHROOT_DIR} kernel-${KERNEL_NAME}; then
-		echo ">>> ERROR: Error installing kernel package $(get_pkg_name kernel-${KERNEL_NAME}).txz" | tee -a ${LOGFILE}
+		echo ">>> ERROR: Error installing kernel package $(get_pkg_name kernel-${KERNEL_NAME})" | tee -a ${LOGFILE}
 		print_error_pfS
 	fi
 
@@ -218,15 +236,16 @@ install_default_kernel() {
 	fi
 	mkdir -p $FINAL_CHROOT_DIR/pkgs
 	if [ -z "${2}" -o -n "${INSTALL_EXTRA_KERNELS}" ]; then
-		cp ${CORE_PKG_ALL_PATH}/$(get_pkg_name kernel-${KERNEL_NAME}).txz $FINAL_CHROOT_DIR/pkgs
+		_kernel_pkg="$(get_core_pkg_path kernel-${KERNEL_NAME})"
+		cp "${_kernel_pkg}" $FINAL_CHROOT_DIR/pkgs
 		if [ -n "${INSTALL_EXTRA_KERNELS}" ]; then
 			for _EXTRA_KERNEL in $INSTALL_EXTRA_KERNELS; do
-				_EXTRA_KERNEL_PATH=${CORE_PKG_ALL_PATH}/$(get_pkg_name kernel-${_EXTRA_KERNEL}).txz
-				if [ -f "${_EXTRA_KERNEL_PATH}" ]; then
+				_EXTRA_KERNEL_PATH="$(get_core_pkg_path kernel-${_EXTRA_KERNEL} 2>/dev/null || true)"
+				if [ -n "${_EXTRA_KERNEL_PATH}" -a -f "${_EXTRA_KERNEL_PATH}" ]; then
 					echo -n ". adding ${_EXTRA_KERNEL_PATH} on image /pkgs folder"
 					cp ${_EXTRA_KERNEL_PATH} $FINAL_CHROOT_DIR/pkgs
 				else
-					echo ">>> ERROR: Requested kernel $(get_pkg_name kernel-${_EXTRA_KERNEL}).txz was not found to be put on image /pkgs folder!"
+					echo ">>> ERROR: Requested kernel $(get_pkg_name kernel-${_EXTRA_KERNEL}) was not found to be put on image /pkgs folder!"
 					print_error_pfS
 				fi
 			done
@@ -754,13 +773,13 @@ customize_stagearea_for_image() {
 	# Prepare final stage area
 	create_final_staging_area
 
-	if [ -f "${CORE_PKG_ALL_PATH}/$(get_pkg_name rc).txz" ]; then
+	if get_core_pkg_path rc >/dev/null 2>&1; then
 		pkg_chroot_add ${FINAL_CHROOT_DIR} rc
 	fi
 	pkg_chroot_add ${FINAL_CHROOT_DIR} base
 
 	# Set base/rc pkgs as vital to avoid user end up removing it for any reason
-	if [ -f "${CORE_PKG_ALL_PATH}/$(get_pkg_name rc).txz" ]; then
+	if get_core_pkg_path rc >/dev/null 2>&1; then
 		pkg_chroot ${FINAL_CHROOT_DIR} set -v 1 -y $(get_pkg_name rc)
 	fi
 	pkg_chroot ${FINAL_CHROOT_DIR} set -v 1 -y $(get_pkg_name base)
@@ -770,7 +789,9 @@ customize_stagearea_for_image() {
 	     "${_image_type}" = "memstickserial" -o \
 	     "${_image_type}" = "memstickadi" ]; then
 		mkdir -p ${FINAL_CHROOT_DIR}/pkgs
-		cp ${CORE_PKG_ALL_PATH}/*default-config*.txz ${FINAL_CHROOT_DIR}/pkgs
+		for _cfgpkg in ${CORE_PKG_ALL_PATH}/*default-config*.pkg ${CORE_PKG_ALL_PATH}/*default-config*.txz; do
+			[ -f "${_cfgpkg}" ] && cp "${_cfgpkg}" ${FINAL_CHROOT_DIR}/pkgs
+		done
 	fi
 
 	pkg_chroot_add ${FINAL_CHROOT_DIR} ${_default_config}
@@ -1280,21 +1301,23 @@ pkg_chroot_add() {
 	fi
 
 	local _target="${1}"
-	local _pkg="$(get_pkg_name ${2}).txz"
+	local _pkg="$(get_core_pkg_path ${2} 2>/dev/null || true)"
+	local _pkgbase=""
 
 	if [ ! -d "${_target}" ]; then
 		echo ">>> ERROR: Target dir ${_target} not found"
 		print_error_pfS
 	fi
 
-	if [ ! -f ${CORE_PKG_ALL_PATH}/${_pkg} ]; then
-		echo ">>> ERROR: Package ${_pkg} not found"
+	if [ -z "${_pkg}" -o ! -f "${_pkg}" ]; then
+		echo ">>> ERROR: Package $(get_pkg_name ${2}) not found"
 		print_error_pfS
 	fi
 
-	cp ${CORE_PKG_ALL_PATH}/${_pkg} ${_target}
-	pkg_chroot ${_target} add /${_pkg}
-	rm -f ${_target}/${_pkg}
+	_pkgbase="$(basename "${_pkg}")"
+	cp "${_pkg}" "${_target}/${_pkgbase}"
+	pkg_chroot ${_target} add "/${_pkgbase}"
+	rm -f "${_target}/${_pkgbase}"
 }
 
 pkg_bootstrap() {
