@@ -635,6 +635,31 @@ clone_to_staging_area() {
 	if [ -d "${BUILDER_TOOLS}/templates/core_pkg/rc/metadir" ]; then
 		core_pkg_create rc "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
 	fi
+	# config.xml moved from src/ to *-default-config ports; seed it when absent.
+	if [ ! -f "${STAGE_CHROOT_DIR}/conf.default/config.xml" ]; then
+		local _ports_root="/usr/local/poudriere/ports/${POUDRIERE_PORTS_NAME}"
+		local _cfg_src=""
+
+		for _cand in \
+			"${_ports_root}/sysutils/${PRODUCT_NAME}-default-config/files/config.xml" \
+			"${_ports_root}/sysutils/pfSense-default-config/files/config.xml"
+		do
+			if [ -f "${_cand}" ]; then
+				_cfg_src="${_cand}"
+				break
+			fi
+		done
+
+		if [ -z "${_cfg_src}" ]; then
+			echo ">>> ERROR: default config.xml not found in stage area or ports tree" | tee -a ${LOGFILE}
+			echo ">>> ERROR: looked for ${_ports_root}/sysutils/{${PRODUCT_NAME},pfSense}-default-config/files/config.xml" | tee -a ${LOGFILE}
+			print_error_pfS
+		fi
+
+		mkdir -p "${STAGE_CHROOT_DIR}/conf.default"
+		cp -f "${_cfg_src}" "${STAGE_CHROOT_DIR}/conf.default/config.xml"
+	fi
+
 	core_pkg_create base "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
 	core_pkg_create default-config "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
 
@@ -726,11 +751,15 @@ customize_stagearea_for_image() {
 	# Prepare final stage area
 	create_final_staging_area
 
-	pkg_chroot_add ${FINAL_CHROOT_DIR} rc
+	if [ -f "${CORE_PKG_ALL_PATH}/$(get_pkg_name rc).txz" ]; then
+		pkg_chroot_add ${FINAL_CHROOT_DIR} rc
+	fi
 	pkg_chroot_add ${FINAL_CHROOT_DIR} base
 
 	# Set base/rc pkgs as vital to avoid user end up removing it for any reason
-	pkg_chroot ${FINAL_CHROOT_DIR} set -v 1 -y $(get_pkg_name rc)
+	if [ -f "${CORE_PKG_ALL_PATH}/$(get_pkg_name rc).txz" ]; then
+		pkg_chroot ${FINAL_CHROOT_DIR} set -v 1 -y $(get_pkg_name rc)
+	fi
 	pkg_chroot ${FINAL_CHROOT_DIR} set -v 1 -y $(get_pkg_name base)
 
 	if [ "${_image_type}" = "iso" -o \
