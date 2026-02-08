@@ -1060,6 +1060,9 @@ setup_pkg_repo() {
 	local _mirror_type="srv"
 	local _signature_type="fingerprints"
 
+	# Local/dev builders often run with unsigned repos.
+	[ -n "${DO_NOT_SIGN_PKG_REPO}" ] && _signature_type="none"
+
 	if [ -z "${_template}" -o ! -f "${_template}" ]; then
 		echo ">>> ERROR: It was not possible to find pkg conf template ${_template}"
 		print_error_pfS
