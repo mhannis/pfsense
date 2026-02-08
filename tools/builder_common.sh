@@ -1192,6 +1192,9 @@ update_freebsd_sources() {
 pkg_chroot() {
 	local _root="${1}"
 	shift
+	local _file_repo=""
+	local _file_repo_mnt=""
+	local _file_repo_mounted=""
 
 	if [ $# -eq 0 ]; then
 		return -1
@@ -1205,6 +1208,20 @@ pkg_chroot() {
 		${SCRATCHDIR}/pkg_cache \
 		${_root}/var/cache/pkg \
 		${_root}/dev
+
+	# When staging repo points to a local file:// path, expose it inside the
+	# target root so chrooted pkg can resolve the same absolute path.
+	case "${PKG_REPO_SERVER_STAGING}" in
+		file://*)
+			_file_repo="${PKG_REPO_SERVER_STAGING#file://}"
+			_file_repo_mnt="${_root}${_file_repo}"
+			if [ -d "${_file_repo}" ]; then
+				mkdir -p "${_file_repo_mnt}"
+				/sbin/mount -t nullfs "${_file_repo}" "${_file_repo_mnt}" >/dev/null 2>&1 \
+					&& _file_repo_mounted="yes"
+			fi
+			;;
+	esac
 
 	/sbin/mount -t nullfs ${SCRATCHDIR}/pkg_cache ${_root}/var/cache/pkg
 	/sbin/mount -t devfs devfs ${_root}/dev
@@ -1223,6 +1240,9 @@ pkg_chroot() {
 	rm -f ${_root}/etc/resolv.conf
 	/sbin/umount -f ${_root}/dev
 	/sbin/umount -f ${_root}/var/cache/pkg
+	if [ -n "${_file_repo_mounted}" ]; then
+		/sbin/umount -f "${_file_repo_mnt}" >/dev/null 2>&1
+	fi
 
 	return $result
 }
