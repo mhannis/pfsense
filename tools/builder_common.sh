@@ -1234,8 +1234,31 @@ pkg_chroot() {
 	if [ -f "${_root}/tmp/pkg/pkg.conf" ]; then
 		_params="${_params} --config /tmp/pkg/pkg.conf "
 	fi
-	script -aq ${BUILDER_LOGS}/install_pkg_install_ports.txt \
-		chroot ${_root} pkg ${_params}$@ >/dev/null 2>&1
+
+	local _pkg_in_chroot=""
+	for _cmd in /usr/sbin/pkg /usr/local/sbin/pkg /usr/local/sbin/pkg-static; do
+		if [ -x "${_root}${_cmd}" ]; then
+			_pkg_in_chroot="${_cmd}"
+			break
+		fi
+	done
+
+	if [ -n "${_pkg_in_chroot}" ]; then
+		script -aq ${BUILDER_LOGS}/install_pkg_install_ports.txt \
+			chroot ${_root} ${_pkg_in_chroot} ${_params}$@ >/dev/null 2>&1
+	else
+		# Newer FreeBSD roots may not have pkg binary yet; use host pkg-static
+		# with -r and explicit config paths rooted in target directory.
+		local _host_params=""
+		if [ -f "${_root}/tmp/pkg/pkg-repos/repo.conf" ]; then
+			_host_params="--repo-conf-dir ${_root}/tmp/pkg/pkg-repos "
+		fi
+		if [ -f "${_root}/tmp/pkg/pkg.conf" ]; then
+			_host_params="${_host_params} --config ${_root}/tmp/pkg/pkg.conf "
+		fi
+		script -aq ${BUILDER_LOGS}/install_pkg_install_ports.txt \
+			/usr/local/sbin/pkg-static -r ${_root} ${_host_params}$@ >/dev/null 2>&1
+	fi
 	local result=$?
 	rm -f ${_root}/etc/resolv.conf
 	/sbin/umount -f ${_root}/dev
