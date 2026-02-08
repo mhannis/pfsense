@@ -687,6 +687,7 @@ clone_to_staging_area() {
 	xml fo -t ${DEFAULTCONF}.tmp > ${DEFAULTCONF}
 	rm -f ${DEFAULTCONF}.tmp
 
+	mkdir -p ${STAGE_CHROOT_DIR}/cf/conf
 	echo force > ${STAGE_CHROOT_DIR}/cf/conf/enableserial_force
 
 	core_pkg_create default-config-serial "" ${CORE_PKG_VERSION} ${STAGE_CHROOT_DIR}
