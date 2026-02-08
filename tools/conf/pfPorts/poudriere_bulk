@@ -39,7 +39,6 @@ net-mgmt/iprange
 net/%%PRODUCT_NAME%%-pkg-arping
 net/%%PRODUCT_NAME%%-pkg-Avahi
 net/%%PRODUCT_NAME%%-pkg-cellular
-net/if_pppoe-kmod
 net/%%PRODUCT_NAME%%-pkg-freeradius3
 net/%%PRODUCT_NAME%%-pkg-frr
 net/%%PRODUCT_NAME%%-pkg-haproxy
