@@ -806,7 +806,13 @@ customize_stagearea_for_image() {
 		else
 			local _tgt_server="${PKG_REPO_SERVER_DEVEL}"
 		fi
-		for _db in ${FINAL_CHROOT_DIR}/var/db/pkg/repo-*sqlite; do
+		for _db in \
+			${FINAL_CHROOT_DIR}/var/db/pkg/repo-*sqlite \
+			${FINAL_CHROOT_DIR}/var/db/pkg/repos/*/db; do
+			[ -f "${_db}" ] || continue
+			_has_repodata=$(/usr/local/bin/sqlite3 "${_db}" \
+				"select 1 from sqlite_master where type='table' and name='repodata'" 2>/dev/null || true)
+			[ "${_has_repodata}" = "1" ] || continue
 			_cur=$(/usr/local/bin/sqlite3 ${_db} "${_read_cmd}")
 			_new=$(echo "${_cur}" | sed -e "s,^${PKG_REPO_SERVER_STAGING},${_tgt_server},")
 			/usr/local/bin/sqlite3 ${_db} "update repodata set value='${_new}' where key='packagesite'"
@@ -1317,7 +1323,9 @@ pkg_chroot_add() {
 	_pkgbase="$(basename "${_pkg}")"
 	cp "${_pkg}" "${_target}/${_pkgbase}"
 	pkg_chroot ${_target} add "/${_pkgbase}"
+	local _ret=$?
 	rm -f "${_target}/${_pkgbase}"
+	return ${_ret}
 }
 
 pkg_bootstrap() {
