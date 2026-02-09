@@ -821,6 +821,19 @@ customize_stagearea_for_image() {
 
 	pkg_chroot_add ${FINAL_CHROOT_DIR} ${_default_config}
 
+	# base.txz is created before staged packages are installed. Reinstall
+	# the product system package here so runtime identity files (e.g.
+	# globals.inc/pkg-utils.inc) match PRODUCT_NAME on the final image.
+	if pkg_chroot ${FINAL_CHROOT_DIR} info -e ${PRODUCT_NAME}-system; then
+		echo -n ">>> Reinstalling ${PRODUCT_NAME}-system in final stage... " | tee -a ${LOGFILE}
+		if pkg_chroot ${FINAL_CHROOT_DIR} install -fy ${PRODUCT_NAME}-system; then
+			echo "Done!" | tee -a ${LOGFILE}
+		else
+			echo "Failed!" | tee -a ${LOGFILE}
+			print_error_pfS
+		fi
+	fi
+
 	# XXX: Workaround to avoid pkg to complain regarding release
 	#      repo on first boot since packages are installed from
 	#      staging server during build phase
@@ -870,6 +883,7 @@ customize_stagearea_for_image() {
 		fi
 	done
 	if [ -n "${_port_repo_default}" -a -f "${_port_repo_default}" ]; then
+		mkdir -p ${FINAL_CHROOT_DIR}/usr/local/etc/pkg/repos
 		cp -f "${_port_repo_default}" \
 			${FINAL_CHROOT_DIR}/usr/local/etc/pkg/repos/${PRODUCT_NAME}.conf
 		echo ">>> Activated runtime repo config: $(basename ${_port_repo_default})"
@@ -883,6 +897,38 @@ customize_stagearea_for_image() {
 				"${_active_conf}"
 			echo ">>> Rewrote staging repo URLs to runtime: ${PKG_REPO_SERVER_DEVEL}"
 		fi
+	fi
+
+	# Seed repo metadata used by pkg_list_repos() so the branch selector
+	# is populated on first boot even when repoc refresh is unavailable.
+	local _repo_share_dir="${FINAL_CHROOT_DIR}/usr/local/share/${PRODUCT_NAME}/pkg/repos"
+	local _repo_etc_dir="${FINAL_CHROOT_DIR}/usr/local/etc/${PRODUCT_NAME}/pkg/repos"
+	if [ -d "${_repo_share_dir}" ]; then
+		mkdir -p "${_repo_etc_dir}"
+
+		if [ -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.conf" ]; then
+			cp -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.conf" "${_repo_etc_dir}/${PRODUCT_NAME}-repo.conf"
+			[ -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.descr" ] && cp -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.descr" "${_repo_etc_dir}/${PRODUCT_NAME}-repo.descr"
+			[ -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.abi" ] && cp -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.abi" "${_repo_etc_dir}/${PRODUCT_NAME}-repo.abi"
+			[ -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.altabi" ] && cp -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.altabi" "${_repo_etc_dir}/${PRODUCT_NAME}-repo.altabi"
+			ln -sf "${PRODUCT_NAME}-repo.conf" "${_repo_etc_dir}/${PRODUCT_NAME}-repo-stable.conf"
+			[ -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.descr" ] && cp -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.descr" "${_repo_etc_dir}/${PRODUCT_NAME}-repo-stable.descr"
+			[ -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.abi" ] && cp -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.abi" "${_repo_etc_dir}/${PRODUCT_NAME}-repo-stable.abi"
+			[ -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.altabi" ] && cp -f "${_repo_share_dir}/${PRODUCT_NAME}-repo.altabi" "${_repo_etc_dir}/${PRODUCT_NAME}-repo-stable.altabi"
+			echo "stable" > "${_repo_etc_dir}/${PRODUCT_NAME}-repo-stable.name"
+		fi
+
+		for _repo_conf in "${_repo_share_dir}/${PRODUCT_NAME}-repo-"*.conf; do
+			[ -f "${_repo_conf}" ] || continue
+			_repo_base="$(basename "${_repo_conf}" .conf)"
+			_repo_name="${_repo_base#${PRODUCT_NAME}-repo-}"
+			cp -f "${_repo_share_dir}/${_repo_base}.conf" "${_repo_etc_dir}/${_repo_base}.conf"
+			[ -f "${_repo_share_dir}/${_repo_base}.descr" ] && cp -f "${_repo_share_dir}/${_repo_base}.descr" "${_repo_etc_dir}/${_repo_base}.descr"
+			[ -f "${_repo_share_dir}/${_repo_base}.abi" ] && cp -f "${_repo_share_dir}/${_repo_base}.abi" "${_repo_etc_dir}/${_repo_base}.abi"
+			[ -f "${_repo_share_dir}/${_repo_base}.altabi" ] && cp -f "${_repo_share_dir}/${_repo_base}.altabi" "${_repo_etc_dir}/${_repo_base}.altabi"
+			[ -f "${_repo_share_dir}/${_repo_base}.conf.default" ] && cp -f "${_repo_share_dir}/${_repo_base}.conf.default" "${_repo_etc_dir}/${_repo_base}.conf.default"
+			echo "${_repo_name}" > "${_repo_etc_dir}/${_repo_base}.name"
+		done
 	fi
 }
 
@@ -2229,6 +2275,7 @@ PKG_REPO_SERVER_RELEASE=${PKG_REPO_SERVER_RELEASE}
 POUDRIERE_PORTS_NAME=${POUDRIERE_PORTS_NAME}
 PFSENSE_DEFAULT_REPO=${PFSENSE_DEFAULT_REPO}
 PRODUCT_NAME=${PRODUCT_NAME}
+PRODUCT_VERSION=${PRODUCT_VERSION}
 REPO_BRANCH_PREFIX=${REPO_PATH_PREFIX}
 PFSENSE_SRC_REPO=${PFSENSE_SRC_REPO}
 PFSENSE_COMMITHASH=${PFSENSE_COMMITHASH}
